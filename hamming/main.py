@@ -66,10 +66,12 @@ def encode(s: str) -> np.ndarray:
     flat_array = np.frombuffer(bitarray.unpack(), dtype=bool).astype(int)  # ik this is weird, i think i need it
     array = flat_array.reshape(4, int(len(flat_array)/4)).T
 
-    # Encode each 4 bit message TODO
+    # Encode each 4 bit message
+    out = list()
+    for message in array:
+        out.append(list(encode_743(message)))
 
-    
-    return array
+    return np.array(out)
 
 
 def encode_743(message: np.ndarray, standard: bool = True) -> np.ndarray:
