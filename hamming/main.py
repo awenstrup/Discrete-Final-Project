@@ -59,12 +59,12 @@ def encode(s: str) -> np.ndarray:
     """
     # Convert to bitarray
     b = bytes(s, "utf-8")
-    bitarray = ba()
-    bitarray.frombytes(b)
+    bits = ba()
+    bits.frombytes(b)
 
     # Convert to ndarray of size (4, n)
-    flat_array = np.frombuffer(bitarray.unpack(), dtype=bool).astype(int)  # ik this is weird, i think i need it
-    array = flat_array.reshape(4, int(len(flat_array)/4)).T
+    flat_array = np.frombuffer(bits.unpack(), dtype=bool).astype(int)  # ik this is weird, i think i need it
+    array = flat_array.reshape(int(len(flat_array)/4), 4, order='F').T
 
     # Encode each 4 bit message
     out = list()
@@ -72,6 +72,32 @@ def encode(s: str) -> np.ndarray:
         out.append(list(encode_743(message)))
 
     return np.array(out)
+
+def decode(received: np.ndarray) -> str:
+    """Given an list of 7-bit codewords, decode to a string.
+
+    :param numpy.ndarray s: The array of codewords, as a 7xn numpy ndarray
+
+    :rtype: str
+    :returns: The decoded string
+
+    Steps (opposite from encode):
+        1. Each 7 bit codeword is converted to a message using the hamming (7, 4, 3) decoding
+        2. The numpy ndarray is flattened to a bitstring
+        3. The bitstring is converted back to a string, using utf-8
+    """
+    # Decode all the codewords
+    decoded = list()
+    for code in received:
+        decoded.append(decode_743(code))
+
+    # Convert to string
+    flattened: np.ndarray = np.array(decoded).flatten()
+    bits: ba = ba(list(flattened))
+    b: bytes = ba.tobytes(bits)
+    out: str = b.decode("utf-8")
+
+    return out
 
 
 def encode_743(message: np.ndarray, standard: bool = True) -> np.ndarray:
@@ -116,9 +142,9 @@ def decode_743(received: np.ndarray, standard: bool = True) -> np.ndarray:
     h_t = H_t_standard if standard else H_t
 
     syndrome = np.mod(received @ h_t, 2)
-    print(f"syndrome: {syndrome}")
+    # print(f"syndrome: {syndrome}")
     corrected = _correct_743(received=received, syndrome=syndrome, standard=standard)
-    print(f"fixed code word: {corrected}")
+    # print(f"fixed code word: {corrected}")
 
     return _undo_encoding_743(corrected=corrected, standard=standard)
 
