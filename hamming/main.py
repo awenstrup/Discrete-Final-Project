@@ -1,5 +1,5 @@
 # Imports
-
+import random
 import numpy as np
 from bitarray import bitarray as ba
 
@@ -64,7 +64,7 @@ def encode(s: str) -> np.ndarray:
 
     # Convert to ndarray of size (4, n)
     flat_array = np.frombuffer(bits.unpack(), dtype=bool).astype(int)  # ik this is weird, i think i need it
-    array = flat_array.reshape(int(len(flat_array)/4), 4, order='F').T
+    array = flat_array.reshape(4, int(len(flat_array)/4), order='F').T
 
     # Encode each 4 bit message
     out = list()
@@ -72,6 +72,28 @@ def encode(s: str) -> np.ndarray:
         out.append(list(encode_743(message)))
 
     return np.array(out)
+
+def add_noise(message: np.ndarray, erate: float, cleanly: bool = False) -> None:
+    """Alter a message in place, flipping about erate*100 % of the bits
+
+    :param np.ndarray message: The message to add noise to
+    :param float erate: What portion of the bits to flip. Specify a float between 0 and 1
+    :param bool cleanly: Option to flip at most 1 bit per 7 bit codeword. Guarantees message
+        will always be decodable. 
+
+    :rtype: None
+    :returns: Nothing
+
+    """
+    shape = message.shape
+    for i in range(shape[0] - 1):
+        for j in range(shape[1] - 1):
+            if random.random() < erate:
+                message[i][j] = 0 if message[i][j] == 1 else 1
+                # print(f"Error injected at i: {i}, j: {j}")
+                if cleanly:
+                    break
+ 
 
 def decode(received: np.ndarray) -> str:
     """Given an list of 7-bit codewords, decode to a string.
