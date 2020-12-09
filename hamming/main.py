@@ -4,9 +4,30 @@ import numpy as np
 from bitarray import bitarray as ba
 
 # Constants
-G = []
-H = []
-H_t = []
+G = np.array([
+    [0, 1, 1, 1, 0, 0, 0],
+    [1, 0, 0, 1, 1, 0, 0],
+    [1, 1, 0, 0, 0, 1, 0],
+    [1, 1, 0, 1, 0, 0, 1],
+])
+
+H = np.array([
+    [1, 0, 0, 0, 1, 1, 1],
+    [0, 1, 1, 0, 0, 1, 1],
+    [0, 0, 1, 1, 1, 0, 1],
+])
+
+H_t = np.transpose(H)
+
+undo = np.array([
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [1, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 1, 0, 0],
+    [0, 0, 1, 0],
+    [0, 0, 0, 1],
+])
 
 G_standard = np.array([
     [0, 1, 1, 1, 0, 0, 0],
@@ -23,7 +44,7 @@ H_standard = np.array([
 
 H_t_standard = np.transpose(H_standard)
 
-decode_standard = np.array([
+undo_standard = np.array([
     [0, 0, 0, 0],
     [0, 0, 0, 0],
     [0, 0, 0, 0],
@@ -188,7 +209,12 @@ def _correct_743(received: np.ndarray, syndrome: np.ndarray, standard: bool) -> 
             np.put(received, position - 1, (1 - received[position - 1]))
             return received
     else:
-        raise Exception("Not supported yet!")
+        position = syndrome[0] << 2 + syndrome[1] << 1 + syndrome[0]  # read syndrome in binary
+        if position == 0:  # No error found
+            return received
+        else:
+            np.put(received, position - 1, (1 - received[position - 1]))
+            return received
 
 def _undo_encoding_743(corrected: np.ndarray, standard: bool = False):
     """Given a (fixed) codeword, undo its encoding back to a 4 bit array
@@ -198,7 +224,7 @@ def _undo_encoding_743(corrected: np.ndarray, standard: bool = False):
     :rtype: np.ndarray
     :returns: The decoded message
     """
-    d = decode_standard if standard else decode
+    d = undo_standard if standard else undo
     return np.mod(corrected @ d, 2)
 
 
